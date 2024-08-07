@@ -6,6 +6,9 @@ use std::sync::mpsc::{self, Sender, SyncSender, Receiver};
 
 use log::*;
 
+use std::thread;
+use std::time::Duration;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Resume {
     Restart = THOST_TE_RESUME_TYPE_THOST_TERT_RESTART as _,
@@ -48,6 +51,9 @@ impl Rust_CThostFtdcTraderSpi_Trait for Spi {
     fn on_front_connected(&mut self) {
         debug!("connected.");
         self.tx.send("connected".into()).unwrap();
+    }
+    fn on_rsp_user_login(&mut self,pRspUserLogin: *mut CThostFtdcRspUserLoginField,pRspInfo: *mut CThostFtdcRspInfoField,nRequestID: ::std::os::raw::c_int,bIsLast:bool) {
+        debug!("on_rsp_user_login");
     }
 }
 
@@ -118,6 +124,7 @@ impl TDApi {
         self.spi = Some(spi);
     }
 
+
     pub fn req_init(&mut self) -> Result<(), String> {
         let (tx, rx) = mpsc::sync_channel(1024);
         self.register(Spi { tx });
@@ -136,6 +143,49 @@ impl TDApi {
         }
 
         unsafe { self.api.Init(); }
+
+        thread::sleep(Duration::from_secs(10));
+        self.req_user_login()?;
+
+        Ok(())
+    }
+
+    pub fn req_user_login(&mut self) -> Result<(), String>{
+
+        let mut broker_id_array = [0i8; 11];
+        let mut user_id_array = [0i8; 16];
+        let mut password_array = [0i8; 41];
+
+        // 将 broker_id转换为 [i8; 11]
+        for (i, c) in self.config.broker_id.chars().enumerate() {
+            broker_id_array[i] = c as i8;
+        }
+        // 将 user_id转换为 [i8; 16]
+        for (i, c) in self.config.user_id.chars().enumerate() {
+            user_id_array[i] = c as i8;
+        }
+        // 将 password转换为 [i8; 41]
+        for (i, c) in self.config.password.chars().enumerate() {
+            password_array[i] = c as i8;
+        }
+
+
+        let mut loginfield = CThostFtdcReqUserLoginField {
+            TradingDay:           Default::default(),
+            BrokerID: broker_id_array,
+            UserID: user_id_array,
+            Password: password_array,
+            UserProductInfo:      Default::default(),
+            InterfaceProductInfo: Default::default(),
+            ProtocolInfo:         Default::default(),
+            MacAddress:           Default::default(),
+            OneTimePassword:      [0i8; 41],
+            ClientIPAddress:      Default::default(),
+            LoginRemark:          [0i8; 36],
+            ClientIPPort:         Default::default(),
+        };
+
+        unsafe { self.api.ReqUserLogin(&mut loginfield, 1); }
 
         Ok(())
     }
@@ -169,13 +219,14 @@ pub fn main() {
     let mut tdapi = TDApi::new(&Config {
         flowpath: "".into(),
         nm_addr: "".into(),
-        user_info: "".into(),
+        user_info: "227375".into(),
+        password: "Whale18814844533%".into(),
         product_info: "".into(),
         public_resume: Resume::Quick,
         private_resume: Resume::Quick,
 
         // simnow - full
-        front_addr: "tcp://180.168.146.187:10101".into(),
+        front_addr: "tcp://180.168.146.187:10130".into(),
         broker_id: "9999".into(),
         auth_code: "".into(),
         app_id: "".into(),

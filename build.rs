@@ -17,17 +17,18 @@ fn main() {
     };
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Link
-    println!("cargo:rustc-link-search={}", root.join("shared/md").join(format!("{}.{}", platform, arch)).display());
-    println!("cargo:rustc-link-search={}", root.join("shared/td").join(format!("{}.{}", platform, arch)).display());
-    println!("cargo:rustc-link-search={}", root.join("shared/data_collect").join(format!("{}.{}", platform, arch)).display());
-
-    if platform == "unix" {
-        println!("cargo:rustc-link-lib=dylib=LinuxDataCollect");
-    } else {
-        println!("cargo:rustc-link-lib=dylib=WinDataCollect");
-    }
+    println!("cargo:rustc-link-search={}", root.join("shared").join(format!("{}.{}", platform, arch)).display());
     println!("cargo:rustc-link-lib=dylib=thostmduserapi_se");
-    println!("cargo:rustc-link-lib=dylib=thosttraderapi_se");
+    println!("cargo:rustc-link-lib=dylib=thosttraderapi_se");  
+    // println!("cargo:rustc-link-search={}", root.join("shared/data_collect").join(format!("{}.{}", platform, arch)).display());
+
+    // if platform == "unix" {
+    //     println!("cargo:rustc-link-lib=dylib=LinuxDataCollect");
+    // } else {
+    //     println!("cargo:rustc-link-lib=dylib=WinDataCollect");
+    // }
+    // println!("cargo:rustc-link-lib=dylib=thostmduserapi_se");
+    // println!("cargo:rustc-link-lib=dylib=thosttraderapi_se");
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Build

@@ -63,3 +63,16 @@ shared
         ├── thosttraderapi_se.dll
         └── thosttraderapi_se.lib
 ```
+
+### 20240807 更新
+期望:
+    添加对trader_ctp的支持。
+    其中trader_ctp为内部封装的CTP接口，提供基础的交易接口。
+
+测试调通初始化:
+1. 在shared下新建目录，参考[找不到so文件](https://github.com/SheldonNico/ctp-rs/issues/3#issuecomment-1455667586)
+2. 然后在~/.local/lib下新建两个软连接，指向shared目录下对应平台的so文件。
+3. 通过export LD_LIBRARY_PATH=/home/liujingyu/.local/lib:$LD_LIBRARY_PATH 导入环境变量。
+4. 编译并测试 
+    cargo build --example=tdapi
+    target/debug/examples/tdapi
