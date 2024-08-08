@@ -48,12 +48,28 @@ struct Spi {
 }
 
 impl Rust_CThostFtdcTraderSpi_Trait for Spi {
+    fn on_rsp_error(&mut self,pRspInfo: *mut CThostFtdcRspInfoField,nRequestID: ::std::os::raw::c_int,bIsLast:bool) {
+        debug!("on_rsp_error");
+    }
+    
     fn on_front_connected(&mut self) {
         debug!("connected.");
         self.tx.send("connected".into()).unwrap();
     }
     fn on_rsp_user_login(&mut self,pRspUserLogin: *mut CThostFtdcRspUserLoginField,pRspInfo: *mut CThostFtdcRspInfoField,nRequestID: ::std::os::raw::c_int,bIsLast:bool) {
         debug!("on_rsp_user_login");
+    }
+    fn on_rsp_settlement_info_confirm(&mut self,pSettlementInfoConfirm: *mut CThostFtdcSettlementInfoConfirmField,pRspInfo: *mut CThostFtdcRspInfoField,nRequestID: ::std::os::raw::c_int,bIsLast:bool) {
+        println!("on_rsp_settlement_info_confirm");
+        debug!("on_rsp_settlement_info_confirm");
+    }
+    fn on_rsp_qry_settlement_info_confirm(&mut self,pSettlementInfoConfirm: *mut CThostFtdcSettlementInfoConfirmField,pRspInfo: *mut CThostFtdcRspInfoField,nRequestID: ::std::os::raw::c_int,bIsLast:bool) {
+        println!("on_rsp_qry_settlement_info_confirm");
+        debug!("on_rsp_qry_settlement_info_confirm");
+    }
+    fn on_rsp_qry_investor_position(&mut self,pInvestorPosition: *mut CThostFtdcInvestorPositionField,pRspInfo: *mut CThostFtdcRspInfoField,nRequestID: ::std::os::raw::c_int,bIsLast:bool) {
+        println!("on_rsp_qry_investor_position");
+        debug!("on_rsp_qry_investor_position");
     }
 }
 
@@ -144,9 +160,6 @@ impl TDApi {
 
         unsafe { self.api.Init(); }
 
-        thread::sleep(Duration::from_secs(10));
-        self.req_user_login()?;
-
         Ok(())
     }
 
@@ -184,12 +197,88 @@ impl TDApi {
             LoginRemark:          [0i8; 36],
             ClientIPPort:         Default::default(),
         };
-
         unsafe { self.api.ReqUserLogin(&mut loginfield, 1); }
+        println!("loginReq Success");
 
         Ok(())
     }
 
+    pub fn req_query_settlement_info_confirm(&mut self) -> Result<(), String> {
+        let mut broker_id_array = [0i8; 11];
+        let mut investor_id_array = [0i8; 13];
+
+        // 将 broker_id转换为 [i8; 11]
+        for (i, c) in self.config.broker_id.chars().enumerate() {
+            broker_id_array[i] = c as i8;
+        }
+        // 将 investor_id转换为 [i8; 13]
+        for (i, c) in self.config.user_id.chars().enumerate() {
+            investor_id_array[i] = c as i8;
+        }
+        let mut confirm_settle_field = CThostFtdcSettlementInfoConfirmField {
+            BrokerID: broker_id_array,
+            InvestorID: investor_id_array,
+            ConfirmDate: Default::default(),
+            ConfirmTime: Default::default(),
+            SettlementID: Default::default(),
+            AccountID: Default::default(),
+            CurrencyID: Default::default(),
+        };
+        unsafe { self.api.ReqSettlementInfoConfirm(&mut confirm_settle_field, 1); }
+        println!("query settlement info confirm Success");
+        Ok(())
+    }
+
+    pub fn req_settlement_info_confirm(&mut self) -> Result<(), String> {
+        let mut broker_id_array = [0i8; 11];
+        let mut investor_id_array = [0i8; 13];
+
+        // 将 broker_id转换为 [i8; 11]
+        for (i, c) in self.config.broker_id.chars().enumerate() {
+            broker_id_array[i] = c as i8;
+        }
+        // 将 investor_id转换为 [i8; 13]
+        for (i, c) in self.config.user_id.chars().enumerate() {
+            investor_id_array[i] = c as i8;
+        }
+        let mut confirm_settle_field = CThostFtdcSettlementInfoConfirmField {
+            BrokerID: broker_id_array,
+            InvestorID: investor_id_array,
+            ConfirmDate: Default::default(),
+            ConfirmTime: Default::default(),
+            SettlementID: Default::default(),
+            AccountID: Default::default(),
+            CurrencyID: Default::default(),
+        };
+        unsafe { self.api.ReqSettlementInfoConfirm(&mut confirm_settle_field, 1); }
+        println!("settlement info confirm Success");
+        Ok(())
+    }
+    pub fn req_query_position(&mut self) -> Result<(), String> {
+
+        let mut broker_id_array = [0i8; 11];
+        let mut investor_id_array = [0i8; 13];
+
+        // 将 broker_id转换为 [i8; 11]
+        for (i, c) in self.config.broker_id.chars().enumerate() {
+            broker_id_array[i] = c as i8;
+        }
+        // 将 investor_id转换为 [i8; 13]
+        for (i, c) in self.config.user_id.chars().enumerate() {
+            investor_id_array[i] = c as i8;
+        }
+
+        let mut qry_pos_field = CThostFtdcQryInvestorPositionField {
+            BrokerID: broker_id_array,
+            InvestorID: investor_id_array,
+            InstrumentID: Default::default(),
+            ExchangeID: Default::default(),
+            InvestUnitID: Default::default(),
+        };
+        unsafe { self.api.ReqQryInvestorPosition(&mut qry_pos_field, 1); }
+        println!("query position Success");
+        Ok(())
+    }
 
 }
 
@@ -219,14 +308,14 @@ pub fn main() {
     let mut tdapi = TDApi::new(&Config {
         flowpath: "".into(),
         nm_addr: "".into(),
-        user_info: "227375".into(),
+        user_id: "227375".into(),
         password: "Whale18814844533%".into(),
         product_info: "".into(),
         public_resume: Resume::Quick,
         private_resume: Resume::Quick,
 
         // simnow - full
-        front_addr: "tcp://180.168.146.187:10130".into(),
+        front_addr: "tcp://180.168.146.187:10201".into(),
         broker_id: "9999".into(),
         auth_code: "".into(),
         app_id: "".into(),
@@ -234,6 +323,18 @@ pub fn main() {
         ..Default::default()
     });
     tdapi.req_init().unwrap();
+    /***
+     * 需要将登录的参数对应上，user_id不是user_info，然后在TDApi中添加相应的查询函数，在Spi中添加相应的回调函数
+     */
+    thread::sleep(Duration::from_secs(3));
+    let _ = tdapi.req_user_login();
+    thread::sleep(Duration::from_secs(3));
+    // let _ = tdapi.req_query_settlement_info_confirm();
+    // thread::sleep(Duration::from_secs(3));
+    // let _ = tdapi.req_settlement_info_confirm();
+    // thread::sleep(Duration::from_secs(3));
+    let _ = tdapi.req_query_position();
+    thread::sleep(Duration::from_secs(3));
 
     eprintln!("mk api success");
     if let Some(ref mut rx) = tdapi.rx {
